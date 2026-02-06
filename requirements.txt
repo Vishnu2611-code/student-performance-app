@@ -1,7 +1,7 @@
 streamlit
 scikit-learn
-joblib
 pandas
 numpy
-fpdf
+joblib
 huggingface_hub
+fpdf

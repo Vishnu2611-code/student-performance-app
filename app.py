@@ -5,22 +5,49 @@ import pandas as pd
 from fpdf import FPDF
 import streamlit.components.v1 as components
 from huggingface_hub import hf_hub_download
+import sqlite3
 
-# ---------------- UI STYLE ----------------
-st.markdown("""
+# ---------------- DATABASE SETUP ----------------
+conn = sqlite3.connect("predictions.db", check_same_thread=False)
+c = conn.cursor()
+c.execute('''CREATE TABLE IF NOT EXISTS history
+             (study_hours INT, attendance INT, participation INT,
+              prediction TEXT, confidence REAL)''')
+conn.commit()
+
+# ---------------- THEME TOGGLE ----------------
+theme = st.sidebar.radio("Choose Theme", ["Dark", "Light"])
+
+if theme == "Dark":
+    bg_color = "#0e1117"
+    text_color = "white"
+else:
+    bg_color = "#f5f5f5"
+    text_color = "black"
+
+st.markdown(f"""
 <style>
-.stApp { background-color: #0e1117; color: #ffffff; }
-h1, h2, h3, h4 { color: #ffffff; text-align: center; }
-section[data-testid="stSidebar"] { background-color: #161b22; }
-.stButton>button {
-    background-color: #238636; color: white; border-radius: 8px;
-    border: none; padding: 0.5em 1em; font-weight: bold;
-}
-.stButton>button:hover { background-color: #2ea043; }
-.stSlider label, .stMarkdown, .stText, .stSubheader { color: #ffffff !important; }
-div[data-testid="stDataFrame"] { background-color: #161b22; }
+.stApp {{
+    background-color: {bg_color};
+    color: {text_color};
+}}
+h1, h2, h3, h4 {{
+    color: {text_color};
+    text-align: center;
+}}
 </style>
 """, unsafe_allow_html=True)
+
+# ---------------- ADMIN LOGIN ----------------
+admin_password = "admin123"
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+password = st.sidebar.text_input("Admin Password", type="password")
+if password == admin_password:
+    st.session_state.logged_in = True
+    st.sidebar.success("Admin Logged In")
 
 # ---------------- LOAD MODEL ----------------
 @st.cache_resource
@@ -39,7 +66,6 @@ model, le = load_models()
 
 # ---------------- TITLE ----------------
 st.title("🎓 Student Performance Predictor")
-st.markdown("### AI-Based Student Performance Prediction System")
 st.write("Predicts student performance using study habits, attendance, and participation.")
 
 # ---------------- INPUTS ----------------
@@ -55,30 +81,36 @@ chart_data = pd.DataFrame({
 })
 st.bar_chart(chart_data.set_index("Activity"))
 
-# ---------------- SESSION STATE ----------------
-if "history" not in st.session_state:
-    st.session_state.history = []
+# ---------------- BULK CSV PREDICTION ----------------
+st.subheader("📂 Bulk Prediction (Upload CSV)")
+uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
-# ---------------- PREDICTION ----------------
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    preds = model.predict(df)
+    df["Predicted Performance"] = le.inverse_transform(preds)
+    st.dataframe(df)
+
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button("⬇ Download Results CSV", csv, "bulk_predictions.csv")
+
+# ---------------- SINGLE PREDICTION ----------------
 if st.button("Predict Performance"):
 
     input_data = np.array([[study_hours, attendance, participation]])
     prediction = model.predict(input_data)
     result = le.inverse_transform(prediction)[0]
 
-    st.success(f"🎯 Predicted Performance: **{result}**")
-
     probability = model.predict_proba(input_data)
     confidence = round(max(probability[0]) * 100, 2)
+
+    st.success(f"🎯 Predicted Performance: **{result}**")
     st.info(f"🔍 Confidence Level: **{confidence}%**")
 
-    st.session_state.history.append({
-        "Study Hours": study_hours,
-        "Attendance": attendance,
-        "Participation": participation,
-        "Prediction": result,
-        "Confidence %": confidence
-    })
+    # Save to DB
+    c.execute("INSERT INTO history VALUES (?, ?, ?, ?, ?)",
+              (study_hours, attendance, participation, result, confidence))
+    conn.commit()
 
     # Performance Meter
     performance_score = {"Low": 30, "Medium": 65, "High": 90}
@@ -94,13 +126,13 @@ if st.button("Predict Performance"):
 
     # Tips
     if result == "Low":
-        st.warning("⚠ Student needs to increase study hours and class participation.")
+        st.warning("⚠ Student needs to increase study hours and participation.")
     elif result == "Medium":
-        st.info("👍 Good performance, but improving study consistency can help reach high level.")
+        st.info("👍 Good performance, try improving consistency.")
     else:
-        st.success("🌟 Excellent performance! Keep up the great work!")
+        st.success("🌟 Excellent performance! Keep it up!")
 
-    # ---------------- PDF GENERATION ----------------
+    # ---------------- PDF REPORT ----------------
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
@@ -124,7 +156,8 @@ Confidence Level: {confidence}%
     with open("report.pdf", "rb") as f:
         st.download_button("📄 Download Report", f, "Student_Report.pdf")
 
-# ---------------- HISTORY ----------------
-if st.session_state.history:
-    st.subheader("📁 Prediction History")
-    st.dataframe(pd.DataFrame(st.session_state.history))
+# ---------------- ADMIN DATABASE VIEW ----------------
+if st.session_state.logged_in:
+    st.subheader("📁 Database History (Admin Only)")
+    db_df = pd.read_sql_query("SELECT * FROM history", conn)
+    st.dataframe(db_df)

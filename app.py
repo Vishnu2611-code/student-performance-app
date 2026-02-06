@@ -68,8 +68,17 @@ def load_models():
 
     model = joblib.load(model_path)
     le = joblib.load(encoder_path)
-
     return model, le
+
+# 🚨 THIS LINE IS IMPORTANT
+model, le = load_models()
+
+
+
+if model is None or le is None:
+    st.error("Model failed to load. Check HuggingFace files.")
+    st.stop()
+
 
 # ---------------- TITLE ----------------
 st.title("🎓 Student Performance Predictor")
@@ -175,6 +184,7 @@ if st.button("Predict Performance"):
 if st.session_state.history:
     st.subheader("📁 Prediction History")
     st.dataframe(pd.DataFrame(st.session_state.history))
+
 
 
 

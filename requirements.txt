@@ -3,5 +3,5 @@ scikit-learn
 joblib
 pandas
 numpy
-requests
 fpdf
+huggingface_hub

@@ -51,9 +51,8 @@ div[data-testid="stDataFrame"] {
 """, unsafe_allow_html=True)
 
 # ---------------- LOAD MODEL ----------------
-import streamlit as st
-import joblib
 from huggingface_hub import hf_hub_download
+import os
 
 @st.cache_resource
 def load_models():
@@ -61,7 +60,7 @@ def load_models():
         repo_id="Vishnu2611/student_performance_model",
         filename="student_performance_model.pkl"
     )
-    
+
     encoder_path = hf_hub_download(
         repo_id="Vishnu2611/student_performance_model",
         filename="label_encoder.pkl"
@@ -69,9 +68,8 @@ def load_models():
 
     model = joblib.load(model_path)
     le = joblib.load(encoder_path)
-    return model, le
 
-model, le = load_models()
+    return model, le
 
 # ---------------- TITLE ----------------
 st.title("🎓 Student Performance Predictor")
@@ -164,6 +162,7 @@ if st.button("Predict Performance"):
 if st.session_state.history:
     st.subheader("📁 Prediction History")
     st.dataframe(pd.DataFrame(st.session_state.history))
+
 
 
 

@@ -119,6 +119,14 @@ if st.button("Predict Performance"):
     confidence = round(max(probability[0]) * 100, 2)
     st.info(f"🔍 Confidence Level: **{confidence}%**")
 
+    st.session_state.history.append({
+    "Study Hours": study_hours,
+    "Attendance": attendance,
+    "Participation": participation,
+    "Prediction": result,
+    "Confidence %": confidence
+})
+
     # Performance Meter
     performance_score = {"Low": 30, "Medium": 65, "High": 90}
     score = performance_score[result]
@@ -140,28 +148,34 @@ if st.button("Predict Performance"):
         st.success("🌟 Excellent performance! Keep up the great work!")
 
     # PDF Download
-    if st.button("📄 Download Report"):
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
+   report_data = f"""
+   Student Performance Report
 
-        pdf.cell(200, 10, txt="Student Performance Report", ln=True, align='C')
-        pdf.ln(10)
-        pdf.cell(200, 10, txt=f"Study Hours: {study_hours}", ln=True)
-        pdf.cell(200, 10, txt=f"Attendance: {attendance}", ln=True)
-        pdf.cell(200, 10, txt=f"Participation: {participation}", ln=True)
-        pdf.cell(200, 10, txt=f"Predicted Performance: {result}", ln=True)
-        pdf.cell(200, 10, txt=f"Confidence: {confidence}%", ln=True)
+   Study Hours: {study_hours}
+   Attendance: {attendance}
+   Participation: {participation}
+   Predicted Performance: {result}
+   Confidence: {confidence}%
+   """
 
-        pdf.output("report.pdf")
+   pdf = FPDF()
+   pdf.add_page()
+   pdf.set_font("Arial", size=12)
+ 
+   for line in report_data.split("\n"):
+       pdf.cell(200, 8, txt=line, ln=True)
 
-        with open("report.pdf", "rb") as f:
-            st.download_button("⬇ Download PDF", f, "Student_Report.pdf")
+   pdf.output("report.pdf")
+
+   with open("report.pdf", "rb") as f:
+       st.download_button("📄 Download Report", f, "Student_Report.pdf")
+
 
 # ---------------- HISTORY TABLE ----------------
 if st.session_state.history:
     st.subheader("📁 Prediction History")
     st.dataframe(pd.DataFrame(st.session_state.history))
+
 
 
 

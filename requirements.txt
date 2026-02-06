@@ -1,8 +1,6 @@
 streamlit
-numpy
-pandas
 scikit-learn
 joblib
-fpdf
-huggingface_hub
+pandas
+numpy
 requests

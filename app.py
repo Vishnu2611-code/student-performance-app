@@ -64,27 +64,30 @@ model, le = load_models()
 
 
 # ---------------- LOAD MODEL ----------------
-from huggingface_hub import hf_hub_download
+import requests
 import joblib
 import streamlit as st
 
-# Load model from HuggingFace (cloud storage)
+MODEL_URL = "https://huggingface.co/Vishnu2611/student_performance_model/resolve/main/student_performance_model.pkl"
+ENCODER_URL = "https://huggingface.co/Vishnu2611/student_performance_model/resolve/main/label_encoder.pkl"
+
 @st.cache_resource
 def load_models():
-    model_path = hf_hub_download(
-        repo_id="Vishnu261/student_performance_model",
-        filename="student_performance_model.pkl"
-    )
-    encoder_path = hf_hub_download(
-        repo_id="Vishnu261/student_performance_model",
-        filename="label_encoder.pkl"
-    )
+    model_file = "student_performance_model.pkl"
+    encoder_file = "label_encoder.pkl"
 
-    model = joblib.load(model_path)
-    le = joblib.load(encoder_path)
+    # download from HF
+    with open(model_file, "wb") as f:
+        f.write(requests.get(MODEL_URL).content)
+    with open(encoder_file, "wb") as f:
+        f.write(requests.get(ENCODER_URL).content)
+
+    model = joblib.load(model_file)
+    le = joblib.load(encoder_file)
     return model, le
 
 model, le = load_models()
+
 
 
 
@@ -180,3 +183,4 @@ if st.button("Predict Performance"):
 if st.session_state.history:
     st.subheader("📁 Prediction History")
     st.dataframe(pd.DataFrame(st.session_state.history))
+

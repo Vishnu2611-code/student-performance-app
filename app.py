@@ -66,27 +66,22 @@ model, le = load_models()
 # ---------------- LOAD MODEL ----------------
 import streamlit as st
 import joblib
-import requests
-import os
-
-MODEL_URL = "https://huggingface.co/Vishnu2611/student_performance_model/resolve/main/student_performance_model.pkl"
-ENCODER_URL = "https://huggingface.co/Vishnu2611/student_performance_model/resolve/main/label_encoder.pkl"
-
-def download_file(url, filename):
-    if not os.path.exists(filename):  # download only once
-        with requests.get(url, stream=True) as r:
-            r.raise_for_status()
-            with open(filename, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
+from huggingface_hub import hf_hub_download
 
 @st.cache_resource
 def load_models():
-    download_file(MODEL_URL, "student_performance_model.pkl")
-    download_file(ENCODER_URL, "label_encoder.pkl")
+    model_path = hf_hub_download(
+        repo_id="Vishnu2611/student_performance_model",
+        filename="student_performance_model.pkl"
+    )
+    
+    encoder_path = hf_hub_download(
+        repo_id="Vishnu2611/student_performance_model",
+        filename="label_encoder.pkl"
+    )
 
-    model = joblib.load("student_performance_model.pkl")
-    le = joblib.load("label_encoder.pkl")
+    model = joblib.load(model_path)
+    le = joblib.load(encoder_path)
     return model, le
 
 model, le = load_models()
@@ -182,5 +177,6 @@ if st.button("Predict Performance"):
 if st.session_state.history:
     st.subheader("📁 Prediction History")
     st.dataframe(pd.DataFrame(st.session_state.history))
+
 
 

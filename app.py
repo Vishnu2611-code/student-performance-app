@@ -50,19 +50,6 @@ div[data-testid="stDataFrame"] {
 </style>
 """, unsafe_allow_html=True)
 
-import joblib
-import streamlit as st
-
-@st.cache_resource
-def load_models():
-    model = joblib.load("student_performance_model.pkl")
-    le = joblib.load("label_encoder.pkl")
-    return model, le
-
-model, le = load_models()
-
-
-
 # ---------------- LOAD MODEL ----------------
 import streamlit as st
 import joblib
@@ -177,6 +164,7 @@ if st.button("Predict Performance"):
 if st.session_state.history:
     st.subheader("📁 Prediction History")
     st.dataframe(pd.DataFrame(st.session_state.history))
+
 
 
 
